@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "281926751227",
+    "firebase_url": "https://vansales-90287-default-rtdb.firebaseio.com",
+    "project_id": "vansales-90287",
+    "storage_bucket": "vansales-90287.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:281926751227:android:de043b13f9b0980b02715e",
+        "android_client_info": {
+          "package_name": "com.posimate.restaurant_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "281926751227-562vmomrlcpquh3387vdt1mja1juic1v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJuzNiEWzY9SHTSR9oL_PGyep_DYRpj_g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "281926751227-562vmomrlcpquh3387vdt1mja1juic1v.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
