@@ -48,10 +48,9 @@ class _FirstScreenState extends State<FirstScreen> {
 
           new TextButton(
             onPressed: ()  {
-              Navigator.pushAndRemoveUntil(
+              Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => SplashScreen()),
-                    (Route<dynamic> route) => false,
+                MaterialPageRoute(builder: (context) => LoginScreen()),
               );
             } ,
             child: Container(
@@ -652,6 +651,7 @@ class _FirstScreenState extends State<FirstScreen> {
 
                                               GestureDetector(
                                                 onTap:(){
+
 
 
                                                   setState(() {

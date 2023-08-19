@@ -15,18 +15,11 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     // TODO: implement initState
-  //  connectPostgres(context);
+     getProducts();
+         getCustomer();
+        getCompany();
 
-    // read('category_data');
-      getProducts();
-       getCustomer();
 
-       // read('product_data');
-    // read('organisation');
-    //  read('customer_details');
-    // read('vendor_data');
-    // read('tax_data');
-    // read('uom_data');
 
 
     Future.delayed(Duration(seconds: 3), () {

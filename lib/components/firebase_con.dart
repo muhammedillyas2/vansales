@@ -1,5 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:dio/dio.dart';
+import 'dart:io';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:cookie_jar/cookie_jar.dart';
+import 'package:dio/dio.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:restaurant_app/screen/waiter_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,6 +25,7 @@ import 'package:restaurant_app/screen/organisation_screen.dart';
 import 'package:restaurant_app/screen/waiter_screen.dart';
 import 'package:get/get.dart';
 List<int> invNo=[];
+String usernameinv = '';
 Rx<List<String>> uom123 = RxList<String>([]).obs;
 Rx<List<String>> price123 = RxList<String>([]).obs;
 List<String> customerVatNo=[];
@@ -51,83 +63,142 @@ String orgComposite='';
 String orgCall='';
 String orgMultiLine='';
 String orgQrCodeIs='';
+String tokengeneral = '2ed3133644b521e';
+String secretgeneral ='5a7732e2ebc3dbd';
 String orgClosedHour='';
+String link = 'taza.dm.dot1.dotorders.com';
 String orgWaiterIs='';
 FirebaseFirestore firebaseFirestore=FirebaseFirestore.instance;
-
-void postInvoice(String name,List items,double tot,String pay,List carts) async {
-  String token = "afadbeecb20dfb7";
-  String secret = "30bef8338f7a5e8";
-  print('pay:$pay');
-  var url =
-  Uri.https('sandf.dm.dot1.dotorders.com', '/api/resource/Sales Invoice');
-  print('items:$items');
-  print(pay);
-  print(name);
-  print(tot.toString());
-  List a = dateNow().toString().trim().split(' ');
-
-  var response = await http.post(
-    url,
-    body: jsonEncode({
-      "customer":'${name.toString().trim()}',
-      "series": "SINV-.YY.-",
-      "date": a[0].toString().trim().replaceAll('/', '-'),
-      "docstatus": 1,
-      "update_stock": 1,
-      "items":   items,
-    }),
-    headers: {'Authorization': "token $token:$secret"},
-  );
-
-  dynamic data = await jsonDecode(response.body);
-  await sunmiV2Print(data["data"]["name"], carts);
-  if(pay.trim()=='Cash') {
-    postPayment(
-        data["data"]["name"],
-        data["data"]["customer_name"],
-        data["data"]["total"],
-        data["data"]["conversion_rate"],
-        data["data"]["currency"]);
+ PersistCookieJar cookieJar;
+ Dio client;
+ void login(name,password) async {
+   print(name);
+   print(password);
+  // var url =
+  //     Uri.https('sandf.dm.dot1.dotorders.com', '/api/resource/Payment Entry');
+  // print(url.toString());
+  await init();
+  try {
+    var response = await client.post(
+      "/api/method/login",
+      data: {
+        "usr": "${name.toString().trim()}",
+        "pwd": "${password.toString().trim()}"
+      },
+    );
+    usernameinv= await response.data['full_name'].toString().trim();
   }
-  else{
-  String token = "afadbeecb20dfb7";
-  String secret = "30bef8338f7a5e8";
-  String customerName = "${name.toString().trim()}";
-  var url = Uri.https(
-      'sandf.dm.dot1.dotorders.com', '/api/resource/Customer/$customerName');
-  print(url.toString());
-  String  oldbalance = customerBalanceList[customerList.indexOf(name.toString().trim())];
-  print(oldbalance);
-  var response = await http.put(
-      url,
-      body: jsonEncode({
-      // "customer_balance":oldbalance.trim()!='null' ?
-      // tot+double.parse(oldbalance.toString().trim()):tot,
-        "customer_balance":47400,
-      }),
-  headers: {'Authorization': "token $token:$secret"});
+  catch(Exception){
+
+  }
+
+
+}
+init() async {
+  try {
+    String baseUrl = "https://sandf.dm.dot1.dotorders.com/";
+    client = Dio(BaseOptions(
+      baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 20),
+      receiveTimeout: const Duration(seconds: 20),
+      sendTimeout: const Duration(seconds: 20),
+    ));
+    Directory appDocDir = await getApplicationDocumentsDirectory();
+    String appDocPath = appDocDir.path;
+
+    cookieJar =
+        PersistCookieJar(storage: FileStorage('$appDocPath/.cookies/'));
+    client.interceptors.add(CookieManager(cookieJar));
+  } catch (exception) {
+    debugPrint(exception.toString());
+  }
 }
 
+void getCompany() async {
+  await init();
+  var response = await client.get("/api/resource/Company", queryParameters: {
+    "fields": '["*"]',
+    "limit_page_length":"10000"
+  });
+
+  organisationName=response.data["data"][0]['company_name'];
+  print('org:${response.data["data"].length}');
+}
+void getCustomer() async {
+  customerList = [];
+  allCustomerMobile=[];
+  allCustomerAddress=[];
+  customerBalanceList=[];
+  await init();
+  var response = await client.get("/api/resource/Customer", queryParameters: {
+    "fields": '["*"]',
+    "limit_page_length":"10000"
+  });
+
+  for(int i = 0;i<response.data["data"].length;i++){
+    customerList.add(response.data["data"][i]["customer_name"]);
+    allCustomerMobile.add('nill');
+    allCustomerAddress.add('nill');
+  }
+  customerList=customerList.toSet().toList();
+  print(customerList);
+}
+
+
+Future<void> postInvoice(List items) async {
+  // String token = "afadbeecb20dfb7";
+  // String secret = "30bef8338f7a5e8";
+  // var url =
+  //     Uri.https('sandf.dm.dot1.dotorders.com', '/api/resource/Sales Invoice');
+  // print(url.toString());
+  await init();
+  print(items);
+  var response = await client.post(
+    '/api/resource/Sales Invoice',
+    data: jsonEncode({
+
+
+    }),
+  );
+  print('client');
+  // dynamic data = jsonDecode(response.data);
+  // print(data["data"]);
+  // postPayment(
+  //     data["data"]["name"],
+  //     data["data"]["customer_name"],
+  //     data["data"]["total"],
+  //     data["data"]["conversion_rate"],
+  //     data["data"]["currency"]);
 }
 String balfrmrepo = '';
-void getAccountsReceivable(String name) async {
+Future getAccountsReceivable(String name) async {
   print('name:$name');
-  String token = "afadbeecb20dfb7";
-  String secret = "30bef8338f7a5e8";
-  var url = Uri.https('sandf.dm.dot1.dotorders.com',
-      '/api/method/frappe.desk.query_report.run', {
-        "report_name": "Accounts Receivable",
-        "filters": jsonEncode(
-            {"range1": "30", "range2": "60", "range3": "90", "range4": "120", "customer":"${name.toString().trim()}"})
-      });
-  print(url.toString());
-  var response =
-  await http.get(url, headers: {'Authorization': "token $token:$secret"});
-  dynamic data = jsonDecode(response.body);
-  List a = data["message"]["result"][data["message"]["result"].length - 1];
+
+  // var url = Uri.https('${link.toString().trim()}',
+  //     '/api/method/frappe.desk.query_report.run', {
+  //       "report_name": "Accounts Receivable",
+  //       "filters": jsonEncode(
+  //           {"range1": "30", "range2": "60", "range3": "90", "range4": "120", "customer":"${name.toString().trim()}"})
+  //     });
+  // print(url.toString());
+  // var response2 =
+  // await http.get(url, headers: {'Authorization': "token $tokengeneral:$secretgeneral"});
+  // dynamic data = jsonDecode(response.body);
+  await init();
+  var response = await client.get(" '/api/method/frappe.desk.query_report.run',", queryParameters: {
+          "report_name": "Accounts Receivable",
+          "filters": jsonEncode(
+              {"range1": "30", "range2": "60", "range3": "90", "range4": "120", "customer":"${name.toString().trim()}"
+              })
+
+  });
+
+
+  List a = response.data["message"]["result"][response.data["message"]["result"].length - 1];
   balfrmrepo = a[13].toString().trim();
-  print(balfrmrepo);
+  print(a);
+  // [, , , , , , , , 15300.0, , 1200.0, 14100.0, 200.0, 14100.0, , , , , INR, , , ]
+  print('bal:$balfrmrepo');
   // netBalanceController.text= a[13].toString();
 }
 void postPayment(
@@ -138,15 +209,14 @@ void postPayment(
     String currency,
     ) async
 {
-  String token = "afadbeecb20dfb7";
-  String secret = "30bef8338f7a5e8";
+
   print(name);
   print(customer);
   print(amount.toString());
   print(conversionRate.toString());
   print(currency);
   var url =
-  Uri.https('sandf.dm.dot1.dotorders.com', '/api/resource/Payment Entry');
+  Uri.https('${link.toString().trim()}', '/api/resource/Payment Entry');
   print(url.toString());
   var response = await http.post(
     url,
@@ -179,7 +249,7 @@ void postPayment(
       ]
     }
     ),
-    headers: {'Authorization': "token $token:$secret"},
+    headers: {'Authorization': "token $tokengeneral:$secretgeneral"},
   );
   print(response.body);
 }
@@ -187,60 +257,34 @@ void postPayment(
 
 
 
-void getCustomer() async {
-customerList = [];
-allCustomerMobile=[];
-allCustomerAddress=[];
-customerBalanceList=[];
-  String token = "afadbeecb20dfb7";
-  String secret = "30bef8338f7a5e8";
-  var url = Uri.https('sandf.dm.dot1.dotorders.com', '/api/resource/Customer',
-      {
-        "fields": '["*"]',
-      });
-  print(url.toString());
-  var response =
-  await http.get(url, headers: {'Authorization': "token $token:$secret"});
-  dynamic data = jsonDecode(response.body);
-
-  for(int i = 0;i<data["data"].length;i++){
-    customerList.add(data["data"][i]["customer_name"]);
-    allCustomerMobile.add('nill');
-    allCustomerAddress.add('nill');
-    customerBalanceList.add(data["data"][i]["customer_balance"].toString());
-  }
-customerList=customerList.toSet().toList();
-  print(customerList);
-}
 
 void getProducts() async {
   allSalableProductuom=[];
   allSalableProductPrice=[];
   itemcode=[];
   allSalableProducts=[];
-  String token = "afadbeecb20dfb7";
-  String secret = "30bef8338f7a5e8";
-  var url = Uri.https('sandf.dm.dot1.dotorders.com', '/api/resource/Item',
-      {
-        "fields": '["*"]',
-        "limit_page_length": "10000",
+  await init();
+  var response = await client.get("/api/resource/Item", queryParameters: {
+    "fields": '["*"]',
+    "limit_start": "20",
+    "limit_page_length":"10000"
+  });
 
-      });
-  print(url.toString());
-  var response =
-  await http.get(url, headers: {'Authorization': "token $token:$secret"});
-  dynamic data = jsonDecode(response.body);
-  print(data["data"].length);
-  for(int i=0;i<data["data"].length;i++){
-    allSalableProducts.add(data["data"][i]["item_name"]);
-    allSalableProductPrice.add(data["data"][i]["standard_rate"].toString());
-    allSalableProductuom.add(data["data"][i]["uom"]);
-    itemcode.add(data["data"][i]["item_code"]);
+  // var response =
+  // await http.get(url, headers: {'Authorization': "token $tokengeneral:$secretgeneral"});
+  //  dynamic data = jsonDecode(response.data);
+
+  for(int i=0;i<response.data["data"].length;i++){
+    allSalableProducts.add(response.data["data"][i]["item_name"]);
+    allSalableProductPrice.add(response.data["data"][i]["standard_rate"].toString());
+    allSalableProductuom.add(response.data["data"][i]["uom"]);
+    itemcode.add(response.data["data"][i]["item_code"]);
 
   }
 
   print('itemcode:$itemcode');
   print(allSalableProducts);
+  print(allSalableProductPrice);
 
   allSalableProducts=allSalableProducts.toSet().toList();
 

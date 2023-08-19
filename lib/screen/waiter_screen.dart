@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:http/http.dart' as http;
 import 'first_page.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -1524,11 +1524,9 @@ class _WaiterScreenState extends State<WaiterScreen> {
 
           new TextButton(
             onPressed: ()  {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => SplashScreen()),
-                    (Route<dynamic> route) => false,
-              );
+              Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()));
             } ,
             child: Container(
                 padding: EdgeInsets.all(6.0),
@@ -3229,8 +3227,9 @@ class _WaiterScreenState extends State<WaiterScreen> {
                                                                             child: GestureDetector(
 
                                                                               onTap: () async {
+                                                                                await initConnectivity();
                                                                                 if (cartListText
-                                                                                    .isNotEmpty) {
+                                                                                    .isNotEmpty&&_connectionStatus.toString().trim()!='ConnectivityResult.none') {
                                                                                   double tot = 0;
                                                                                  List cart = [];
                                                                                  cart.addAll(cartListText);
@@ -3242,37 +3241,52 @@ class _WaiterScreenState extends State<WaiterScreen> {
                                                                                       .pop(
                                                                                       context);
 
-                                                                                  print(allPrinter);
-                                                                                  print("Print result:::: "+allPrinterIp[allPrinter.indexOf(currentPrinterName)]);
+
+
 
                                                                                   List temp = [];
                                                                                   double total = 0;
 
                                                                                   for(int i = 0;i<cart.length;i++){
-
-
-
                                                                                     List a = cart[i].toString().trim().split(':');
                                                                                     print(a);
                                                                                     double r = double.parse(a[2].toString().trim())/
                                                                                         double.parse(a[3].toString().trim());
                                                                                     total+=double.parse(a[2].toString().trim());
                                                                                    temp.add({
-
-                                                                                       "item_code": itemcode[allSalableProducts.indexOf(a[0].toString().trim())],
+                                                                                     "item_code": itemcode[allSalableProducts.indexOf(a[0].toString().trim())],
                                                                                        "qty":int.parse(a[3].toString().trim()) ,
                                                                                        "unitPrice": r,
-
-
-
-                                                                              });
-
+                                                                                   });
 
                                                                                   }
                                                                                   print('cus:$selectedCustomer');
-                                                                                 await  postInvoice(selectedCustomer,temp,total,selectedPayment,cart);
-                                                                                     // invoicenum, '', temp);
-                                                                                //    await  postInvoice();
+                                                                                  await init();
+                                                                                  var response = await client.post(
+                                                                                    '/api/resource/Sales Invoice',
+                                                                                    data: jsonEncode({
+                                                                                      "customer": "Test",
+                                                                                      "series": "SINV-.YY.-",
+                                                                                      "date": "2023-07-18",
+                                                                                      "docstatus": 1,
+                                                                                      "update_stock": 1,
+                                                                                      // "is_return": 1,
+                                                                                      "items": [
+                                                                                        {
+                                                                                          "item_code": "1001",
+                                                                                          "qty": 2,
+                                                                                          "unitPrice": 0,
+                                                                                        },
+                                                                                        {
+                                                                                          "item_code": "1002",
+                                                                                          "qty": 6,
+                                                                                          "unitPrice": 0,
+                                                                                        }
+                                                                                      ]
+                                                                                    }),
+                                                                                  );
+                                                                                  print('no issue');
+                                                                                  print(response.data);
 
 
 
@@ -3309,7 +3323,15 @@ class _WaiterScreenState extends State<WaiterScreen> {
 
                                                                                 }
                                                                                 else {
-                                                                                  addproduct(context);
+                                                                                  if(cartListText
+                                                                                      .isEmpty) {
+                                                                                    addproduct(
+                                                                                        context);
+                                                                                  }
+                                                                                else  if(_connectionStatus.toString().trim()=='ConnectivityResult.none') {
+                                                                                   nonet(
+                                                                                        context);
+                                                                                  }
 
                                                                                 }
                                                                               },
@@ -4169,6 +4191,7 @@ class _WaiterScreenState extends State<WaiterScreen> {
                         selectedmenu!='Receipt'?
                         GestureDetector(
                           onTap:(){
+                            selectedCustomer='';
                             setState(() {
 
                             });
@@ -4219,7 +4242,6 @@ class _WaiterScreenState extends State<WaiterScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(selectedCustomer.toString().trim(),style: TextStyle(fontFamily: 'Montserrat-SemiBold',fontSize: MediaQuery.of(context).size.width*0.045,color: Colors.white),),
-                                Text( allCustomerAddress[customerList.indexOf(selectedCustomer.toString().trim())],style: TextStyle(fontFamily: 'Montserrat-SemiBold',fontSize: MediaQuery.of(context).size.width*0.035,color: Colors.white),),
                               ],
                             ),
                           ),
@@ -5080,8 +5102,9 @@ class _WaiterScreenState extends State<WaiterScreen> {
                                                                             child: GestureDetector(
 
                                                                               onTap: () async {
+                                                                                await initConnectivity();
                                                                                 if (cartListText
-                                                                                    .isNotEmpty) {
+                                                                                    .isNotEmpty&&_connectionStatus.toString().trim()!='ConnectivityResult.none') {
                                                                                   double tot = 0;
                                                                                   List cart = [];
                                                                                   cart.addAll(cartListText);
@@ -5196,8 +5219,8 @@ class _WaiterScreenState extends State<WaiterScreen> {
                                                                                   // int  invNum=await getLastInv(
                                                                                   //       'sales');
 
-                                                                                  print(allPrinter);
-                                                                                  print("Print result:::: "+allPrinterIp[allPrinter.indexOf(currentPrinterName)]);
+
+
                                                                                   // if(currentPrinter=='Network'){
                                                                                   //   const PaperSize paper = PaperSize.mm80;
                                                                                   //   final profile = await CapabilityProfile.load();
@@ -5293,11 +5316,10 @@ class _WaiterScreenState extends State<WaiterScreen> {
 
                                                                                     });
                                                                                   }
-                                                                                  String token = "afadbeecb20dfb7";
-                                                                                  String secret = "30bef8338f7a5e8";
+
 
                                                                                   var url =
-                                                                                  Uri.https('sandf.dm.dot1.dotorders.com', '/api/resource/Sales Invoice');
+                                                                                  Uri.https('${link.toString().trim()}', '/api/resource/Sales Invoice');
                                                                                   List a = dateNow().toString().trim().split(' ');
                                                                                   print('teee');
 
@@ -5312,7 +5334,7 @@ class _WaiterScreenState extends State<WaiterScreen> {
                                                                                       "is_return": 1,
                                                                                       "items": temp
                                                                                     }),
-                                                                                    headers: {'Authorization': "token $token:$secret"},
+                                                                                    headers: {'Authorization': "token $tokengeneral:$secretgeneral"},
                                                                                   );
                                                                                   dynamic data = jsonDecode(response.body);
 
@@ -5352,6 +5374,13 @@ class _WaiterScreenState extends State<WaiterScreen> {
 
                                                                                 }
                                                                                 else {
+                                                                                  if(_connectionStatus.toString().trim()=='ConnectivityResult.none'){
+                                                                                    nonet(context);
+
+                                                                                  }
+                                                                                  else if(cartListText.isEmpty){
+
+                                                                                  }
 
                                                                                 }
                                                                               },
@@ -5602,7 +5631,7 @@ class _WaiterScreenState extends State<WaiterScreen> {
                               fontSize: MediaQuery.of(context).textScaleFactor*20,
                             ),
                             controller: netBalanceController,
-                            enabled: false,
+                            enabled: true,
                             // keyboardType:
                             // TextInputType.number,
                             // inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -5687,14 +5716,13 @@ class _WaiterScreenState extends State<WaiterScreen> {
                       if(allok==true&& _connectionStatus.toString().trim()!='ConnectivityResult.none'&&minus.toString().contains('-')==false) {
                         netBalanceController.clear();
                         ScaffoldMessenger.of(context).showSnackBar(creditpaid);
-                         String token = "afadbeecb20dfb7";
-                         String secret = "30bef8338f7a5e8";
 
 
-                         var url = Uri.https('sandf.dm.dot1.dotorders.com', '/api/resource/Payment Entry');
-                         var response = await http.post(
-                           url,
-                             body: jsonEncode(
+
+                         var url = Uri.https('${link.toString().trim()}', '/api/resource/Payment Entry');
+                         var response = await client.post(
+                           '/api/resource/Payment Entry',
+                             data:
                                  {
                                    "series": "ACC-PAY-.YYYY.-",
                                    "payment_type": "Receive",
@@ -5710,9 +5738,9 @@ class _WaiterScreenState extends State<WaiterScreen> {
                                    "paid_to": "Cash - SAFLSAM"
 
                                  }
-                             ),
 
-                           headers: {'Authorization': "token $token:$secret"},
+
+
                          );
 
 
@@ -5720,20 +5748,7 @@ class _WaiterScreenState extends State<WaiterScreen> {
 
 
 
-                      //   String customerName = "${customerVendorController.text.toString().trim()}";
-                      // int index1 = customerList.indexOf(customerVendorController.text.toString().trim());
-                      //   var url2 = Uri.https(
-                      //       'sandf.dm.dot1.dotorders.com', '/api/resource/Customer/$customerName');
-                      //
-                      //   var response2 = await http.put(
-                      //     url2,
-                      //     body: jsonEncode({"customer_balance": minus}),
-                      //     headers: {'Authorization': "token $token:$secret"},
-                      //   );
-                      //
-                      //   dynamic data2 = await jsonDecode(response2.body);
-                      //   customerBalanceList.removeAt(index1);
-                      //   customerBalanceList.insert(index1, minus.toString().trim());
+
 
 
 
@@ -7645,10 +7660,9 @@ void sunmiV2Print(String orderNo,List carts)
   double cess=0;
   taxCum = "";
   grandTotal=0;
-  SunmiPrinter.text('$organisationName', styles: SunmiStyles(bold: true,align: SunmiAlign.center,size: SunmiSize.lg),);
-  SunmiPrinter.text('$organisationAddress', styles: SunmiStyles(bold: true,align: SunmiAlign.center,size: SunmiSize.md),);
-  if(organisationMobile.length>0)
-    SunmiPrinter.text('Mobile Number:$organisationMobile', styles: SunmiStyles(bold: true,align: SunmiAlign.center,size: SunmiSize.md),);
+  SunmiPrinter.text('$organisationName', styles: SunmiStyles(bold: true,align: SunmiAlign.center,size: SunmiSize.md),);
+  SunmiPrinter.text('SRM ROAD,ERANAKULAM', styles: SunmiStyles(bold: true,align: SunmiAlign.center,size: SunmiSize.md),);
+    SunmiPrinter.text('Mobile Number: 9746886263', styles: SunmiStyles(bold: true,align: SunmiAlign.center,size: SunmiSize.md),);
   if(organisationGstNo.length>0) {
     SunmiPrinter.text('$organisationTaxType Number:$organisationGstNo', styles: SunmiStyles(bold: true,align: SunmiAlign.center,size:SunmiSize.md),);
     SunmiPrinter.text('$organisationTaxTitle', styles: SunmiStyles(bold: true,align: SunmiAlign.center,size: SunmiSize.md),);
@@ -7662,14 +7676,12 @@ void sunmiV2Print(String orderNo,List carts)
 
   SunmiPrinter.text('Invoice No:$userSalesPrefix$orderNo', styles: SunmiStyles(bold: true,align: SunmiAlign.left,size: SunmiSize.md),);
   SunmiPrinter.text('Date:$dateS', styles: SunmiStyles(bold: true,align: SunmiAlign.left,size: SunmiSize.md),);
-  if (appbarCustomerController.text.length>0){
+  if (selectedCustomer!=''){
 
 
-    SunmiPrinter.text('Customer Name:${appbarCustomerController.text}',
+    SunmiPrinter.text('Customer Name:${selectedCustomer}',
       styles: SunmiStyles(align: SunmiAlign.left, size: SunmiSize.md),);
-    if(allCustomerAddress[customerList.indexOf(appbarCustomerController.text)].length>0)
-      SunmiPrinter.text('Customer Address:${allCustomerAddress[customerList.indexOf(appbarCustomerController.text)]}',
-        styles: SunmiStyles(align: SunmiAlign.left, size: SunmiSize.md),);
+
   }
   SunmiPrinter.hr(ch: '-');
   if(orgMultiLine=='true'){
@@ -7871,9 +7883,16 @@ void sunmiV2Print(String orderNo,List carts)
       }
     }
   }
+  if (selectedCustomer!='') {
+    SunmiPrinter.hr(ch: '-');
+    SunmiPrinter.text('Customer Balance:${balfrmrepo.toString().trim()}',
+      styles: SunmiStyles(align: SunmiAlign.center, size: SunmiSize.md),);
+  }
   if(organisationGstNo.length>0) SunmiPrinter.hr(ch: '-');
   SunmiPrinter.text('Thank You,Visit Again', styles: SunmiStyles(bold: true,align: SunmiAlign.center,size: SunmiSize.md),);
   SunmiPrinter.emptyLines(6);
+
+
 }
 
 
